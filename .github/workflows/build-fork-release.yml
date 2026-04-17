@@ -19,6 +19,8 @@ on:
 jobs:
   build_linux_x86_64:
     runs-on: ubuntu-22.04
+    env:
+      RUSTFLAGS: "-C debuginfo=0 -C strip=symbols"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,6 +40,9 @@ jobs:
           cp target/release/zed dist/zed
           cp target/release/cli dist/zed-cli
 
+      - name: Show Linux artifact sizes
+        run: ls -lh dist/zed dist/zed-cli
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -52,6 +57,7 @@ jobs:
       CARGO_HOME: D:\.cargo
       CARGO_TARGET_DIR: D:\target
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      RUSTFLAGS: "-C debuginfo=0 -C strip=symbols"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,6 +79,11 @@ jobs:
           New-Item -Path dist -ItemType Directory -Force | Out-Null
           Copy-Item target/release/zed.exe dist/zed.exe -Force
           Copy-Item target/release/cli.exe dist/zed-cli.exe -Force
+
+      - name: Show Windows artifact sizes
+        shell: pwsh
+        run: |
+          Get-Item dist/zed.exe, dist/zed-cli.exe | Select-Object Name, @{n='SizeMB';e={[math]::Round($_.Length/1MB,2)}}
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
