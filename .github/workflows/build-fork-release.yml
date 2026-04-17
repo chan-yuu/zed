@@ -1,0 +1,110 @@
+name: Build Fork Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (for example: v0.234.0-i18n.1)"
+        required: true
+        type: string
+      publish_release:
+        description: "Publish a GitHub Release with built binaries"
+        required: true
+        default: true
+        type: boolean
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build_linux_x86_64:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        run: ./script/linux
+
+      - name: Build binaries
+        run: CXXFLAGS="-fpermissive" cargo build --release -p zed -p cli
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p dist
+          cp target/release/zed dist/zed
+          cp target/release/cli dist/zed-cli
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zed-linux-x86_64
+          path: |
+            dist/zed
+            dist/zed-cli
+
+  build_windows_x86_64:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build binaries
+        shell: pwsh
+        run: cargo build --release -p zed -p cli
+
+      - name: Prepare artifacts
+        shell: pwsh
+        run: |
+          New-Item -Path dist -ItemType Directory -Force | Out-Null
+          Copy-Item target/release/zed.exe dist/zed.exe -Force
+          Copy-Item target/release/cli.exe dist/zed-cli.exe -Force
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zed-windows-x86_64
+          path: |
+            dist/zed.exe
+            dist/zed-cli.exe
+
+  publish_release:
+    runs-on: ubuntu-22.04
+    needs:
+      - build_linux_x86_64
+      - build_windows_x86_64
+    if: ${{ github.event_name == 'push' || inputs.publish_release }}
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Resolve release tag
+        id: release_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: |
+            dist/zed-linux-x86_64/zed
+            dist/zed-linux-x86_64/zed-cli
+            dist/zed-windows-x86_64/zed.exe
+            dist/zed-windows-x86_64/zed-cli.exe
