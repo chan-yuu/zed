@@ -377,20 +377,16 @@ async fn get_cached_server_binary(
     container_dir: PathBuf,
     node: &NodeRuntime,
 ) -> Option<LanguageServerBinary> {
-    maybe!(async {
-        let server_path = container_dir.join(SERVER_PATH);
-        anyhow::ensure!(
-            server_path.exists(),
-            "missing executable in directory {server_path:?}"
-        );
-        Ok(LanguageServerBinary {
-            path: node.binary_path().await?,
-            env: None,
-            arguments: server_binary_arguments(&server_path),
-        })
+    let server_path = container_dir.join(SERVER_PATH);
+    if !server_path.exists() {
+        return None;
+    }
+
+    Some(LanguageServerBinary {
+        path: node.binary_path().await.log_err()?,
+        env: None,
+        arguments: server_binary_arguments(&server_path),
     })
-    .await
-    .log_err()
 }
 
 #[cfg(test)]
