@@ -20,7 +20,8 @@ jobs:
   build_linux_x86_64:
     runs-on: ubuntu-22.04
     env:
-      RUSTFLAGS: "-C debuginfo=0 -C strip=symbols"
+      CARGO_PROFILE_RELEASE_DEBUG: "0"
+      CARGO_PROFILE_RELEASE_STRIP: symbols
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,7 +58,8 @@ jobs:
       CARGO_HOME: D:\.cargo
       CARGO_TARGET_DIR: D:\target
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-      RUSTFLAGS: "-C debuginfo=0 -C strip=symbols"
+      CARGO_PROFILE_RELEASE_DEBUG: "0"
+      CARGO_PROFILE_RELEASE_STRIP: symbols
     steps:
       - name: Checkout
         uses: actions/checkout@v4
