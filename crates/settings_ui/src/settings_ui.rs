@@ -976,9 +976,12 @@ impl SettingsPageItem {
                                 .relative()
                                 .w_full()
                                 .max_w_1_2()
-                                .child(Label::new(sub_page_link.title.clone()))
+                                .child(Label::new(i18n::t(sub_page_link.title.as_ref(), cx)))
                                 .when_some(
-                                    sub_page_link.description.as_ref(),
+                                    sub_page_link
+                                        .description
+                                        .as_ref()
+                                        .map(|description| i18n::t(description.as_ref(), cx)),
                                     |this, description| {
                                         this.child(
                                             Label::new(description.clone())
@@ -1110,9 +1113,12 @@ impl SettingsPageItem {
                                 .relative()
                                 .w_full()
                                 .max_w_1_2()
-                                .child(Label::new(action_link.title.clone()))
+                                .child(Label::new(i18n::t(action_link.title.as_ref(), cx)))
                                 .when_some(
-                                    action_link.description.as_ref(),
+                                    action_link
+                                        .description
+                                        .as_ref()
+                                        .map(|description| i18n::t(description.as_ref(), cx)),
                                     |this, description| {
                                         this.child(
                                             Label::new(description.clone())
@@ -1125,7 +1131,7 @@ impl SettingsPageItem {
                         .child(
                             Button::new(
                                 ("action-link".into(), action_link.title.clone()),
-                                action_link.button_text.clone(),
+                                i18n::t(action_link.button_text.as_ref(), cx),
                             )
                             .tab_index(0_isize)
                             .end_icon(
@@ -2450,7 +2456,10 @@ impl SettingsWindow {
                                         }),
                                     )
                                     .style(DropdownStyle::Subtle)
-                                    .trigger_tooltip(Tooltip::text("View Other Projects"))
+                                    .trigger_tooltip(Tooltip::text(i18n::t(
+                                        "View Other Projects",
+                                        cx,
+                                    )))
                                     .trigger_icon(IconName::ChevronDown)
                                     .attach(gpui::Corner::BottomLeft)
                                     .offset(gpui::Point {
@@ -2937,18 +2946,18 @@ impl SettingsWindow {
             .filter(move |&(item_index, _)| self.filter_table[page_idx][item_index])
     }
 
-    fn render_sub_page_breadcrumbs(&self) -> impl IntoElement {
+    fn render_sub_page_breadcrumbs(&self, cx: &App) -> impl IntoElement {
         h_flex().min_w_0().gap_1().overflow_x_hidden().children(
             itertools::intersperse(
-                std::iter::once(self.current_page().title.into()).chain(
+                std::iter::once(i18n::t(self.current_page().title, cx)).chain(
                     self.sub_page_stack
                         .iter()
                         .enumerate()
                         .flat_map(|(index, page)| {
                             (index == 0)
-                                .then(|| page.section_header.clone())
+                                .then(|| i18n::t(page.section_header.as_ref(), cx))
                                 .into_iter()
-                                .chain(std::iter::once(page.link.title.clone()))
+                                .chain(std::iter::once(i18n::t(page.link.title.as_ref(), cx)))
                         }),
                 ),
                 "/".into(),
@@ -2959,15 +2968,19 @@ impl SettingsWindow {
 
     fn render_no_results(&self, cx: &App) -> impl IntoElement {
         let search_query = self.search_bar.read(cx).text(cx);
+        let no_results_message = i18n::t("No Results", cx);
+        let no_settings_match_message = i18n::t("No settings match \"{}\"", cx)
+            .to_string()
+            .replace("{}", search_query.as_ref());
 
         v_flex()
             .size_full()
             .items_center()
             .justify_center()
             .gap_1()
-            .child(Label::new("No Results"))
+            .child(Label::new(no_results_message))
             .child(
-                Label::new(format!("No settings match \"{}\"", search_query))
+                Label::new(no_settings_match_message)
                     .size(LabelSize::Small)
                     .color(Color::Muted),
             )
@@ -3183,7 +3196,7 @@ impl SettingsWindow {
                                     this.pop_sub_page(window, cx);
                                 })),
                         )
-                        .child(self.render_sub_page_breadcrumbs()),
+                        .child(self.render_sub_page_breadcrumbs(cx)),
                 )
                 .when(current_sub_page.link.in_json, |this| {
                     this.child(
@@ -3241,12 +3254,12 @@ impl SettingsWindow {
                         v_flex()
                             .my_0p5()
                             .gap_0p5()
-                            .child(Label::new(label))
+                            .child(Label::new(i18n::t(label, cx)))
                             .child(Label::new(error).size(LabelSize::Small).color(Color::Muted)),
                     )
                     .action_slot(
                         div().pr_1().pb_1().child(
-                            Button::new("fix-in-json", "Fix in settings.json")
+                            Button::new("fix-in-json", i18n::t("Fix in settings.json", cx))
                                 .tab_index(0_isize)
                                 .style(ButtonStyle::Tinted(ui::TintColor::Warning))
                                 .on_click(cx.listener(|this, _, window, cx| {
@@ -3273,9 +3286,16 @@ impl SettingsWindow {
                     settings::MigrationStatus::Succeeded => this.child(banner(
                         "Your settings are out of date, and need to be updated.",
                         match &self.current_file {
-                            SettingsUiFile::User => "They can be automatically migrated to the latest version.",
-                            SettingsUiFile::Server(_) | SettingsUiFile::Project(_)  => "They must be manually migrated to the latest version."
-                        }.to_string(),
+                            SettingsUiFile::User => i18n::t(
+                                "They can be automatically migrated to the latest version.",
+                                cx,
+                            ),
+                            SettingsUiFile::Server(_) | SettingsUiFile::Project(_) => i18n::t(
+                                "They must be manually migrated to the latest version.",
+                                cx,
+                            ),
+                        }
+                        .to_string(),
                         &mut self.shown_errors,
                         cx,
                     )),
