@@ -36,6 +36,15 @@ jobs:
           cache-on-failure: true
           shared-key: build-fork-release-v2
 
+      - name: Setup sccache
+        run: ./script/setup-sccache
+
+      - name: Enable sccache with GitHub cache backend
+        run: |
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "SCCACHE_CACHE_SIZE=10G" >> "$GITHUB_ENV"
+
       - name: Install Linux dependencies
         run: ./script/linux
 
@@ -50,6 +59,10 @@ jobs:
 
       - name: Show Linux artifact sizes
         run: ls -lh dist/zed-linux-x86_64.tar.gz dist/zed-remote-server-linux-x86_64.gz
+
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats || true
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -82,6 +95,17 @@ jobs:
           cache-on-failure: true
           shared-key: build-fork-release-v2
 
+      - name: Setup sccache
+        shell: pwsh
+        run: ./script/setup-sccache.ps1
+
+      - name: Enable sccache with GitHub cache backend
+        shell: pwsh
+        run: |
+          "RUSTC_WRAPPER=sccache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "SCCACHE_GHA_ENABLED=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "SCCACHE_CACHE_SIZE=10G" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Build Windows release bundle
         shell: pwsh
         env:
@@ -99,6 +123,11 @@ jobs:
         shell: pwsh
         run: |
           Get-Item dist/Zed-x86_64.exe, dist/zed-remote-server-windows-x86_64.zip | Select-Object Name, @{n='SizeMB';e={[math]::Round($_.Length/1MB,2)}}
+
+      - name: Show sccache stats
+        if: always()
+        shell: pwsh
+        run: if ($env:RUSTC_WRAPPER) { & $env:RUSTC_WRAPPER --show-stats }; exit 0
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
