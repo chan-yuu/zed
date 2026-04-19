@@ -43,11 +43,9 @@ jobs:
       - name: Setup sccache
         run: ./script/setup-sccache
 
-      - name: Enable sccache with GitHub cache backend
+      - name: Enable sccache
         run: |
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
-          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
-          echo "SCCACHE_CACHE_SIZE=10G" >> "$GITHUB_ENV"
 
       - name: Install Linux dependencies
         run: ./script/linux
@@ -113,12 +111,10 @@ jobs:
         shell: pwsh
         run: ./script/setup-sccache.ps1
 
-      - name: Enable sccache with GitHub cache backend
+      - name: Enable sccache
         shell: pwsh
         run: |
           "RUSTC_WRAPPER=sccache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "SCCACHE_GHA_ENABLED=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "SCCACHE_CACHE_SIZE=10G" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build Windows release bundle
         shell: pwsh
