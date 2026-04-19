@@ -51,6 +51,8 @@ jobs:
         run: ./script/linux
 
       - name: Build Linux release bundle
+        env:
+          CXXFLAGS: -fpermissive
         run: ./script/bundle-linux
 
       - name: Prepare artifacts
