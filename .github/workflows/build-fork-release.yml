@@ -16,6 +16,10 @@ on:
     tags:
       - "v*"
 
+concurrency:
+  group: build-fork-release
+  cancel-in-progress: true
+
 jobs:
   bundle_linux_x86_64:
     runs-on: ubuntu-22.04
@@ -94,6 +98,16 @@ jobs:
         with:
           cache-on-failure: true
           shared-key: build-fork-release-v2
+
+      - name: Cache Windows bundle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            AGS_SDK_v6.3.0.zip
+            AGS_SDK-6.3.0
+            Microsoft.Windows.Console.ConPTY.1.23.251216003.nupkg
+            conpty
+          key: windows-bundle-deps-v1
 
       - name: Setup sccache
         shell: pwsh

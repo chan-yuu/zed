@@ -211,18 +211,70 @@ function SignZedAndItsFriends {
 function DownloadAMDGpuServices {
     # If you update the AGS SDK version, please also update the version in `crates/gpui/src/platform/windows/directx_renderer.rs`
     $url = "https://codeload.github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK/zip/refs/tags/v6.3.0"
-    $zipPath = ".\AGS_SDK_v6.3.0.zip"
-    # Download the AGS SDK zip file
-    Invoke-WebRequest -Uri $url -OutFile $zipPath
-    # Extract the AGS SDK zip file
-    Expand-Archive -Path $zipPath -DestinationPath "." -Force
+    $archivePath = ".\AGS_SDK_v6.3.0.zip"
+    $extractPath = ".\AGS_SDK-6.3.0"
+    $requiredLibraryPath = "$extractPath\ags_lib\lib\amd_ags_x64.dll"
+
+    if (Test-Path $requiredLibraryPath) {
+        Write-Output "Using cached AGS SDK from $extractPath"
+        return
+    }
+
+    if (-not (Test-Path $archivePath)) {
+        Invoke-WebRequest -Uri $url -OutFile $archivePath
+    } else {
+        Write-Output "Using cached AGS SDK archive $archivePath"
+    }
+
+    if (Test-Path $extractPath) {
+        Remove-Item -Path $extractPath -Recurse -Force
+    }
+
+    Expand-Archive -Path $archivePath -DestinationPath "." -Force
 }
 
 function DownloadConpty {
     $url = "https://github.com/microsoft/terminal/releases/download/v1.23.13503.0/Microsoft.Windows.Console.ConPTY.1.23.251216003.nupkg"
-    $zipPath = ".\Microsoft.Windows.Console.ConPTY.1.23.251216003.nupkg"
-    Invoke-WebRequest -Uri $url -OutFile $zipPath
-    Expand-Archive -Path $zipPath -DestinationPath ".\conpty" -Force
+    $archivePath = ".\Microsoft.Windows.Console.ConPTY.1.23.251216003.nupkg"
+    $extractPath = ".\conpty"
+
+    $requiredPaths = if ($Architecture -eq "aarch64") {
+        @(
+            "$extractPath\build\native\runtimes\arm64\OpenConsole.exe"
+            "$extractPath\runtimes\win-arm64\native\conpty.dll"
+        )
+    } else {
+        @(
+            "$extractPath\build\native\runtimes\x64\OpenConsole.exe"
+            "$extractPath\build\native\runtimes\arm64\OpenConsole.exe"
+            "$extractPath\runtimes\win-x64\native\conpty.dll"
+        )
+    }
+
+    $hasAllRequiredPaths = $true
+    foreach ($requiredPath in $requiredPaths) {
+        if (-not (Test-Path $requiredPath)) {
+            $hasAllRequiredPaths = $false
+            break
+        }
+    }
+
+    if ($hasAllRequiredPaths) {
+        Write-Output "Using cached ConPTY from $extractPath"
+        return
+    }
+
+    if (-not (Test-Path $archivePath)) {
+        Invoke-WebRequest -Uri $url -OutFile $archivePath
+    } else {
+        Write-Output "Using cached ConPTY archive $archivePath"
+    }
+
+    if (Test-Path $extractPath) {
+        Remove-Item -Path $extractPath -Recurse -Force
+    }
+
+    Expand-Archive -Path $archivePath -DestinationPath $extractPath -Force
 }
 
 function CollectFiles {
